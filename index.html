@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Plate</title>
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
+<style>
+:root{--h:160;--bg:hsl(var(--h) 30% 95%);--card:#fff;--tx:hsl(var(--h) 30% 12%);--mu:hsl(var(--h) 10% 40%);--bd:hsl(var(--h) 20% 85%);--hi:hsl(var(--h) 55% 32%);--on:#fff;color-scheme:light}
+:root[data-mode=dark]{--bg:hsl(var(--h) 25% 9%);--card:hsl(var(--h) 22% 14%);--tx:hsl(var(--h) 20% 92%);--mu:hsl(var(--h) 10% 65%);--bd:hsl(var(--h) 18% 24%);--hi:hsl(var(--h) 60% 66%);--on:hsl(var(--h) 30% 8%);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom))}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0 14px;letter-spacing:-.02em}h2{font-size:1.05rem;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+.card.hl{outline:3px solid var(--hi);outline-offset:3px}
+.big{font-size:2rem;font-weight:700;color:var(--hi);line-height:1}
+form{display:grid;grid-template-columns:1fr 1fr;gap:8px}form .w{grid-column:1/-1}
+label{font-size:.8rem;color:var(--mu);display:block}
+input,textarea,select{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+input[type=color]{padding:2px;height:40px}input[type=checkbox]{width:auto}input[type=range]{padding:0}
+button{font:inherit;padding:10px 14px;border:0;border-radius:8px;background:var(--hi);color:var(--on);font-weight:600;cursor:pointer}
+button.ghost{background:none;color:var(--mu);padding:4px 8px;font-weight:400}
+button.alt{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}button.alt.on{border-color:var(--hi);box-shadow:inset 0 0 0 1px var(--hi)}
+.sw{width:38px;height:38px;border-radius:50%;padding:0;border:2px solid var(--bd)}
+.gap{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px;align-items:center}
+:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--bd)}
+.row small{color:var(--mu);display:block}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;overflow-x:auto;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1 0 auto;background:none;color:var(--mu);border-radius:0;padding:14px 12px;font-size:.82rem}
+nav button.on{color:var(--tx);box-shadow:inset 0 3px 0 var(--hi)}
+.msg{padding:8px 10px;border-radius:10px;margin:6px 0;white-space:pre-wrap}.me{background:var(--bg);margin-left:24px}.ai{border:1px solid var(--bd);margin-right:24px}
+.err{color:#d6453d;font-size:.9rem;min-height:1.2em}
+#av{position:fixed;z-index:20;width:76px;height:88px;padding:0;background:none;border:0;border-radius:0;line-height:0;overflow:visible;filter:drop-shadow(0 3px 5px #0005);transition:left .9s ease,top .9s ease;animation:fl 3s ease-in-out infinite}
+#av svg{display:block;overflow:visible;pointer-events:none}
+#arm{transform-origin:47px 54px}
+#av.wave #arm{animation:wave 2.4s ease-in-out 1}
+@keyframes wave{0%{transform:rotate(0)}18%{transform:rotate(-110deg)}34%{transform:rotate(-85deg)}50%{transform:rotate(-110deg)}66%{transform:rotate(-85deg)}82%{transform:rotate(-110deg)}100%{transform:rotate(0)}}
+@media(prefers-reduced-motion:reduce){#av.wave #arm{animation:none;transform:rotate(-100deg)}}
+@keyframes fl{50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){#av{animation:none;transition:none}}
+#bub{position:fixed;z-index:21;width:min(280px,calc(100vw - 16px));background:var(--card);border:2px solid var(--hi);border-radius:16px;padding:12px;box-shadow:0 4px 16px #0003}
+#bub[hidden],#av[hidden]{display:none}
+#bub .bb{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}#bub .bb button{padding:7px 11px;font-size:.9rem}
+#av{touch-action:none;cursor:grab}#av.drag{transition:none;animation:none;cursor:grabbing}
+</style></head>
+<body><main id="app"></main>
+<button id="av" hidden aria-label="Open helper"></button><div id="bub" hidden role="dialog"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+// ===== STEP: paste your two Supabase values here =====
+const SB_URL = "https://jkxdthsqvybszotpmbzc.supabase.co";
+const SB_KEY = "sb_publishable_pSC9p99oTjD8aK0sW1wrGQ_QfoSKt7S";
+// =====================================================
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today = () => new Date().toLocaleDateString("en-CA");
+const rand = a => a[Math.floor(Math.random()*a.length)];
+
+/* ---------- settings (saved on this device) ---------- */
+const DEF = {name:"Saiura", emoji:"🌸", color:"#e0529a", mode:"auto", hue:160, pop:true, intro:false};
+let S;
+try { S = {...DEF, ...JSON.parse(localStorage.getItem("plate_s")||"{}")}; } catch { S = {...DEF}; }
+const save = () => { try { localStorage.setItem("plate_s", JSON.stringify(S)); } catch {} };
+function applyTheme(){
+  const dark = S.mode==="dark" || (S.mode==="auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.mode = dark ? "dark" : "light";
+  document.documentElement.style.setProperty("--h", S.hue);
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
+applyTheme();
+
+/* ---------- tables ---------- */
+const F = (n,l,t="number",s="",o) => ({n,l,t,s,o});
+const MAC = [F("kcal","kcal","number"," kcal"),F("protein","Protein g","number","g protein"),F("carbs","Carbs g","number","g carbs"),F("fat","Fat g","number","g fat")];
+const T = {
+  food_log:{label:"Food", day:1, key:"name", f:[F("name","Food","text"),...MAC]},
+  meal_plan:{label:"Plan", day:1, key:"name", f:[F("slot","Meal","select","",["Breakfast","Lunch","Dinner","Snack"]),F("name","What will you eat?","text"),F("kcal","kcal","number"," kcal")]},
+  reminders:{label:"Reminders", day:1, key:"title", f:[F("title","Remind me to...","text"),F("remind_time","Time","time"),F("repeat_mode","Repeat","select","",["Once","Daily"])]},
+  recipes:{label:"Recipes", key:"name", f:[F("name","Recipe","text"),...MAC,F("notes","Notes","text")]},
+  gym:{label:"Gym", day:1, key:"exercise", f:[F("exercise","Exercise","text"),F("sets","Sets","number"," sets"),F("reps","Reps","number"," reps"),F("weight_kg","Weight kg","number"," kg")]},
+  body_weight:{label:"Weight", day:1, key:"kg", f:[F("kg","Weight kg","number"," kg")]},
+};
+const tabs = [...Object.keys(T), "chat", "settings"];
+let tab = "food_log", chat = [];
+const tabName = t => t==="chat" ? S.name : t==="settings" ? "Settings" : T[t].label;
+
+/* ---------- sign in / sign up ---------- */
+let recovering = /type=recovery/.test(location.hash);
+async function boot(){
+  const {data:{session}} = await sb.auth.getSession();
+  recovering ? resetView() : session ? start() : login();
+}
+sb.auth.onAuthStateChange(e => {
+  if(e==="SIGNED_OUT") login();
+  if(e==="PASSWORD_RECOVERY"){ recovering = true; resetView(); }
+});
+function formMsg(t, good){ const er = $("#er"); er.textContent = t; er.style.color = good ? "var(--hi)" : ""; }
+function login(mode="in"){
+  $("#av").hidden = true; $("#bub").hidden = true;
+  const up = mode==="up", fg = mode==="forgot";
+  $("#app").innerHTML = `<h1>Plate</h1><div class="card"><p>${up?"Create your account to keep your food, plans and workouts on every device.":fg?"Enter your email and we'll send you a link to reset your password.":"Sign in to see your data on every device."}</p>
+  <form id="lf"><div class="w"><label>Email</label><input id="em" type="email" autocomplete="email" required></div>
+  ${fg?"":`<div class="w"><label>Password${up?" (at least 8 characters)":""}</label><input id="pw" type="password" autocomplete="${up?"new-password":"current-password"}" minlength="${up?8:1}" required></div>`}
+  ${up?`<div class="w"><label>Confirm password</label><input id="pw2" type="password" autocomplete="new-password" minlength="8" required></div>`:""}
+  <div class="w"><button type="submit" id="go">${up?"Create account":fg?"Send reset link":"Sign in"}</button></div></form>
+  <p class="err" id="er" role="alert"></p>
+  <div class="gap">${up||fg?`<button type="button" class="ghost" id="m-in">Back to sign in</button>`:`<button type="button" class="ghost" id="m-up">New here? Create an account</button><button type="button" class="ghost" id="m-fg">Forgot password?</button>`}</div></div>`;
+  $("#m-in") && ($("#m-in").onclick = () => login("in"));
+  $("#m-up") && ($("#m-up").onclick = () => login("up"));
+  $("#m-fg") && ($("#m-fg").onclick = () => login("forgot"));
+  $("#lf").onsubmit = async e => {
+    e.preventDefault();
+    const email = $("#em").value.trim(), btn = $("#go");
+    formMsg(""); btn.disabled = true;
+    try{
+      if(fg){
+        const {error} = await sb.auth.resetPasswordForEmail(email, {redirectTo: location.origin + "/"});
+        error ? formMsg(error.message) : formMsg("If that email has an account, a reset link is on its way.", true);
+      } else if(up){
+        const pw = $("#pw").value;
+        if(pw !== $("#pw2").value) return formMsg("Passwords don't match.");
+        const {data, error} = await sb.auth.signUp({email, password: pw, options:{emailRedirectTo: location.origin + "/"}});
+        if(error) formMsg(error.message);
+        else if(data.user && data.user.identities && data.user.identities.length===0) formMsg("That email already has an account. Try signing in instead.");
+        else if(data.session) start();
+        else formMsg("Almost there! Check your email for a confirmation link, then sign in.", true);
+      } else {
+        const {error} = await sb.auth.signInWithPassword({email, password: $("#pw").value});
+        error ? formMsg(error.message) : start();
+      }
+    } finally { btn.disabled = false; }
+  };
+}
+function resetView(){
+  $("#av").hidden = true; $("#bub").hidden = true;
+  $("#app").innerHTML = `<h1>Plate</h1><div class="card"><p>Choose a new password.</p>
+  <form id="lf"><div class="w"><label>New password (at least 8 characters)</label><input id="pw" type="password" autocomplete="new-password" minlength="8" required></div>
+  <div class="w"><button type="submit" id="go">Save password</button></div></form><p class="err" id="er" role="alert"></p></div>`;
+  $("#lf").onsubmit = async e => {
+    e.preventDefault();
+    const {error} = await sb.auth.updateUser({password: $("#pw").value});
+    if(error) return formMsg(error.message);
+    recovering = false; history.replaceState(null, "", location.pathname); start();
+  };
+}
+function start(){ show(); avatar(); startReminders(); if(!S.intro){ S.intro = true; save(); setTimeout(intro, 800); } }
+function goto(t){ tab = t; show(); }
+
+/* ---------- screens ---------- */
+function show(){
+  $("#app").innerHTML = `<div id="view"></div><nav>${tabs.map(t=>`<button data-t="${t}" class="${t===tab?"on":""}">${tabName(t)}</button>`).join("")}</nav>`;
+  document.querySelectorAll("nav button").forEach(b => b.onclick = () => goto(b.dataset.t));
+  document.querySelector("nav .on")?.scrollIntoView({inline:"center",block:"nearest"});
+  tab==="chat" ? chatView() : tab==="settings" ? settingsView() : tableView(tab);
+}
+
+async function tableView(t){
+  const c = T[t], v = $("#view");
+  v.innerHTML = `<h1>${c.label}</h1><div class="card"><form id="f">${c.day?`<div class="w"><label>Date</label><input name="day" type="date" value="${today()}" required></div>`:""}
+  ${c.f.map(x=>`<div class="${x.t==="number"?"":"w"}"><label>${x.l}</label>${x.t==="select"?`<select name="${x.n}">${x.o.map(o=>`<option>${o}</option>`).join("")}</select>`:`<input name="${x.n}" type="${x.t}" ${x.t==="number"?'step="any" inputmode="decimal"':""} ${x.n===c.key||x.t==="time"?"required":""} ${t==="meal_plan"&&x.n==="name"?'list="rl"':""}>`}</div>`).join("")}
+  <div class="w"><button type="submit">Add</button></div></form>${t==="meal_plan"?'<datalist id="rl"></datalist>':""}<p class="err" id="er"></p></div><div id="list" class="card">Loading…</div>`;
+  const num = Object.fromEntries(c.f.map(x=>[x.n,x.t==="number"]));
+  $("#f").onsubmit = async e => {
+    e.preventDefault();
+    const row = {};
+    new FormData(e.target).forEach((val,k)=>{ if(val!=="") row[k] = num[k] ? Number(val) : val; });
+    const {error} = await sb.from(t).insert(row);
+    if(error) return $("#er").textContent = error.message;
+    tableView(t);
+  };
+  if(t==="meal_plan"){
+    const {data:rs} = await sb.from("recipes").select("name,kcal").limit(100);
+    $("#rl").innerHTML = (rs||[]).map(r=>`<option value="${esc(r.name)}">`).join("");
+    $("#f [name=name]").onchange = e => { const r=(rs||[]).find(x=>x.name===e.target.value); if(r&&r.kcal!=null) $("#f [name=kcal]").value = r.kcal; };
+  }
+  const {data,error} = await sb.from(t).select("*").order(c.day?"day":"created_at",{ascending:false}).order("created_at",{ascending:false}).limit(100);
+  if(error) return $("#list").textContent = error.message;
+  if(t==="reminders") REM = data||[];
+  let head = "";
+  if(t==="food_log"){
+    const d = (data||[]).filter(r=>r.day===today());
+    const s = k => Math.round(d.reduce((a,r)=>a+(+r[k]||0),0));
+    head = `<div style="margin-bottom:10px"><span class="big">${s("kcal")}</span> kcal today<br><small style="color:var(--mu)">${s("protein")}g protein · ${s("carbs")}g carbs · ${s("fat")}g fat</small></div>`;
+  }
+  if(t==="body_weight" && data?.length) head = `<div style="margin-bottom:10px"><span class="big">${data[0].kg}</span> kg latest</div>`;
+  const title = r => c.key==="kg" ? r.kg+" kg" : r[c.key];
+  const detail = r => [c.day?r.day:"", ...c.f.filter(x=>x.n!==c.key).map(x=>r[x.n]!=null&&r[x.n]!==""?r[x.n]+x.s:"")].filter(Boolean).map(esc).join(" · ");
+  $("#list").innerHTML = head + (data?.length ? data.map(r=>`<div class="row"><div>${esc(title(r))}<small>${detail(r)}</small></div><button class="ghost" data-id="${r.id}" aria-label="Delete">Delete</button></div>`).join("") : "Nothing here yet. Add your first entry above.");
+  document.querySelectorAll("#list [data-id]").forEach(b => b.onclick = async () => { await sb.from(t).delete().eq("id", b.dataset.id); tableView(t); });
+}
+
+function chatView(){
+  const v = $("#view");
+  v.innerHTML = `<h1>${esc(S.name)}</h1><div class="card" id="log">${chat.length?"":"Ask about your meals, workouts or weight. The AI can see your recent entries."}</div>
+  <div class="card"><textarea id="q" rows="2" placeholder="e.g. Give me a quick high-protein dinner"></textarea><p class="err" id="er"></p><button id="send">Send</button> <button id="clr" class="ghost">Clear</button></div>`;
+  const draw = () => $("#log").innerHTML = chat.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${esc(m.content)}</div>`).join("");
+  if(chat.length) draw();
+  $("#clr").onclick = () => { chat = []; chatView(); };
+  $("#send").onclick = async () => {
+    const q = $("#q").value.trim(); if(!q) return;
+    chat.push({role:"user",content:q}); $("#q").value=""; draw(); $("#er").textContent="Thinking…";
+    const {data,error} = await sb.functions.invoke("chat",{body:{messages:chat}});
+    $("#er").textContent = "";
+    if(error || data?.error){
+      let m = data?.error || error.message;
+      try { m = (await error.context.json()).error || m; } catch {}
+      chat.pop(); draw(); return $("#er").textContent = m;
+    }
+    chat.push({role:"assistant",content:data.reply}); draw();
+  };
+}
+
+const THEMES = [["Mint",160],["Ocean",205],["Berry",330],["Sunset",20],["Grape",270]];
+const EMOJI = ["🌸","🦊","🐱","🤖","🦄","⭐"];
+function settingsView(){
+  $("#view").innerHTML = `<h1>Settings</h1>
+  <div class="card"><h2>Look of the app</h2><label>Light or dark</label>
+  <div class="gap">${[["auto","Auto"],["light","Light"],["dark","Dark"]].map(([m,l])=>`<button class="alt ${S.mode===m?"on":""}" data-md="${m}">${l}</button>`).join("")}</div>
+  <label>Colour theme</label><div class="gap">${THEMES.map(([n,h])=>`<button class="sw" title="${n}" aria-label="${n}" data-hue="${h}" style="background:hsl(${h} 60% 45%)"></button>`).join("")}</div>
+  <label>Make your own colour</label><input type="range" id="hue" min="0" max="360" value="${S.hue}"></div>
+  <div class="card"><h2>Your helper</h2><label>Her name</label><input id="bn" value="${esc(S.name)}" maxlength="20">
+  <label style="margin-top:10px">Her face</label><div class="gap">${EMOJI.map(e=>`<button class="alt ${S.emoji===e?"on":""}" data-emoji="${e}">${e}</button>`).join("")}</div>
+  <label>Her colour</label><input type="color" id="bc" value="${S.color}">
+  <label style="margin:12px 0;display:flex;gap:8px;align-items:center"><input type="checkbox" id="pp" ${S.pop?"checked":""}> Let her pop up with tips</label>
+  <button id="rt">Take the tour again</button> <button class="alt" id="rp">Put her back in the corner</button></div>
+  <div class="card"><button class="alt" id="so">Sign out</button></div>`;
+  document.querySelectorAll("[data-md]").forEach(b=>b.onclick=()=>{S.mode=b.dataset.md;save();applyTheme();settingsView()});
+  document.querySelectorAll("[data-hue]").forEach(b=>b.onclick=()=>{S.hue=+b.dataset.hue;save();applyTheme();settingsView()});
+  $("#hue").oninput = e => { S.hue=+e.target.value; save(); applyTheme(); };
+  $("#bn").oninput = e => { S.name = e.target.value.trim() || "Saiura"; save(); avatar(); const c = document.querySelector("nav [data-t=chat]"); if(c) c.textContent = S.name; };
+  document.querySelectorAll("[data-emoji]").forEach(b=>b.onclick=()=>{S.emoji=b.dataset.emoji;save();avatar();settingsView()});
+  $("#bc").oninput = e => { S.color=e.target.value; save(); avatar(); };
+  $("#pp").onchange = e => { S.pop=e.target.checked; save(); };
+  $("#rt").onclick = () => tour(0);
+  $("#rp").onclick = () => { S.pos = null; save(); homePos(); };
+  $("#so").onclick = () => sb.auth.signOut();
+}
+
+/* ---------- the helper (floating avatar) ---------- */
+const av = $("#av"), bub = $("#bub");
+let bt, wt, touring = false;
+const AW = 76, AH = 88;
+const homePos = () => place(innerWidth-AW-8, innerHeight-AH-72);
+function body(){
+  const c = S.color;
+  return `<svg viewBox="-6 0 76 88" width="76" height="88" aria-hidden="true">
+  <ellipse cx="32" cy="85" rx="19" ry="3" fill="#0003"/>
+  <ellipse cx="25" cy="80" rx="6.5" ry="4" fill="${c}"/><ellipse cx="39" cy="80" rx="6.5" ry="4" fill="${c}"/>
+  <path d="M17 54 L9 68" stroke="${c}" stroke-width="7" stroke-linecap="round"/><circle cx="8" cy="70" r="4.8" fill="#ffe3cc"/>
+  <rect x="16" y="46" width="32" height="35" rx="15" fill="${c}"/><rect x="16" y="46" width="32" height="35" rx="15" fill="#fff" fill-opacity=".12"/>
+  <circle cx="32" cy="28" r="23" fill="${c}"/><circle cx="32" cy="28" r="23" fill="#fff" fill-opacity=".3"/>
+  <text x="32" y="37" text-anchor="middle" font-size="27">${S.emoji}</text>
+  <g id="arm"><path d="M47 54 L56 69" stroke="${c}" stroke-width="7" stroke-linecap="round"/><circle cx="57" cy="70.5" r="5.3" fill="#ffe3cc"/><circle cx="57" cy="70.5" r="5.3" fill="none" stroke="#0002"/></g>
+  </svg>`;
+}
+function wave(){ av.classList.remove("wave"); void av.offsetWidth; av.classList.add("wave"); clearTimeout(wt); wt = setTimeout(()=>av.classList.remove("wave"), 2500); }
+const TIPS = ["You are doing great today! 💪","Don't forget to drink some water! 💧","Tiny steps add up. Log one meal now!","Tap me any time if you need a hand!","Psst! You can drag me anywhere you like!","Have you logged your weight this week?","Proud of you for showing up today! 🌟"];
+function avatar(){
+  av.hidden = false; av.innerHTML = body(); av.title = S.name; av.setAttribute("aria-label","Open "+S.name);
+  if(!av.style.left) S.pos ? place(S.pos.x,S.pos.y) : homePos();
+}
+function place(x,y){ av.style.left = Math.max(8,Math.min(innerWidth-AW,x))+"px"; av.style.top = Math.max(8,Math.min(innerHeight-AH,y))+"px"; }
+function say(text, btns=[], ms=0){
+  clearTimeout(bt);
+  bub.innerHTML = `<div>${esc(text)}</div>${btns.length?`<div class="bb">${btns.map((b,i)=>`<button data-i="${i}">${esc(b[0])}</button>`).join("")}</div>`:""}`;
+  bub.hidden = false; bub.querySelectorAll("button").forEach(b => b.onclick = () => btns[b.dataset.i][1]());
+  posBub();
+  if(ms) bt = setTimeout(()=>bub.hidden=true, ms);
+}
+function posBub(){
+  const r = av.getBoundingClientRect(), W = Math.min(280, innerWidth-16);
+  bub.style.left = Math.max(8,Math.min(innerWidth-W-8, r.left+r.width/2-W/2))+"px";
+  if(r.top > innerHeight/2){ bub.style.bottom = (innerHeight-r.top+8)+"px"; bub.style.top = "auto"; } else { bub.style.top = (r.bottom+8)+"px"; bub.style.bottom = "auto"; }
+}
+const hideBub = () => { bub.hidden = true; };
+function intro(){ wave(); say(`Hey, im ${S.name}, your friend in need, would you like a tour of your new work place?`, [["Yes please!",()=>tour(0)],["No thanks",()=>say("No worries! Tap me any time and I'll show you around. 💕",[],5000)]]); }
+av.onclick = () => {
+  if(moved) return;
+  if(!bub.hidden){ hideBub(); return; }
+  wave();
+  say(`Hi! I'm ${S.name} 💕 What would you like to do?`, [["Take the tour",()=>tour(0)],["Cheer me on",()=>say(rand(TIPS),[],6000)],["Chat with me",()=>{hideBub();goto("chat")}],["Close",hideBub]]);
+};
+let moved = false;
+av.addEventListener("pointerdown", e => {
+  const sx=e.clientX, sy=e.clientY, r=av.getBoundingClientRect(), ox=r.left, oy=r.top; let on=false;
+  try { av.setPointerCapture(e.pointerId); } catch {}
+  const mv = ev => {
+    const dx=ev.clientX-sx, dy=ev.clientY-sy;
+    if(!on && Math.hypot(dx,dy)<6) return;
+    on = true; moved = true; av.classList.add("drag");
+    av.style.left = Math.max(0,Math.min(innerWidth-AW,ox+dx))+"px"; av.style.top = Math.max(0,Math.min(innerHeight-AH,oy+dy))+"px";
+    if(!bub.hidden) posBub();
+  };
+  const up = () => {
+    av.removeEventListener("pointermove",mv); av.removeEventListener("pointerup",up); av.removeEventListener("pointercancel",up);
+    av.classList.remove("drag");
+    if(on){ S.pos = {x:parseFloat(av.style.left), y:parseFloat(av.style.top)}; save(); }
+    setTimeout(()=>moved=false, 60);
+  };
+  av.addEventListener("pointermove",mv); av.addEventListener("pointerup",up); av.addEventListener("pointercancel",up);
+});
+const STEPS = [
+ ["food_log","This is Food! Type what you ate and tap Add. Your calories for today show up in the list below."],
+ ["meal_plan","This is your Plan. Pick breakfast, lunch, dinner or a snack and plan your day. Your saved recipes show up as suggestions!"],
+["reminders","Add reminders here, like vitamins or drinking water. When it is time, I will pop up and remind you!"],
+ ["recipes","Save your favourite recipes here with their calories and macros."],
+ ["gym","Log each exercise here: sets, reps and the weight you lifted."],
+ ["body_weight","Pop your body weight in here and watch your progress."],
+ ["chat","This tab is my AI chat, named after me! Ask for meal ideas or advice. It can see your recent entries."],
+ ["settings","And this is Settings! Change my name and look, switch light or dark mode, and pick your colours. You can also drag me anywhere on the screen!"]];
+function endTour(){ touring = false; document.querySelectorAll(".hl").forEach(e=>e.classList.remove("hl")); }
+function tour(i){
+  touring = true; if(i===0) wave();
+  if(i >= STEPS.length){ endTour(); say("That's the whole tour! You're all set. 🎉",[["Thanks!",hideBub]]); return; }
+  goto(STEPS[i][0]); homePos();
+  setTimeout(()=>{
+    document.querySelectorAll(".hl").forEach(e=>e.classList.remove("hl"));
+    const c = $("#view .card"); if(c){ c.classList.add("hl"); c.scrollIntoView({block:"start"}); }
+    say(STEPS[i][1], [[i<STEPS.length-1?"Next":"Finish",()=>tour(i+1)],["Skip",()=>{endTour();hideBub()}]]);
+  }, 300);
+}
+let REM = [], snz = {}, remOn = false;
+const fired = () => { try { return JSON.parse(localStorage.getItem("plate_fired")||"{}"); } catch { return {}; } };
+const setFired = f => { try { localStorage.setItem("plate_fired", JSON.stringify(f)); } catch {} };
+async function loadRem(){ const {data} = await sb.from("reminders").select("*").limit(200); REM = data || []; }
+function checkRem(){
+  if(av.hidden || touring || !bub.hidden || document.hidden) return;
+  const td = today(), hm = new Date().toTimeString().slice(0,5), f = fired();
+  const r = REM.find(x => {
+    if(snz[x.id] > Date.now()) return false;
+    const tm = String(x.remind_time||"").slice(0,5);
+    if(x.repeat_mode === "Daily") return x.day <= td && tm <= hm && f[x.id] !== td;
+    return !f[x.id] && (x.day < td || (x.day === td && tm <= hm));
+  });
+  if(!r) return;
+  f[r.id] = td; setFired(f);
+  wave();
+  say(`⏰ Reminder: ${r.title}`, [
+    ["Got it!", async () => { hideBub(); if(r.repeat_mode !== "Daily"){ await sb.from("reminders").delete().eq("id", r.id); await loadRem(); if(tab==="reminders") tableView("reminders"); } }],
+    ["Snooze 10 min", () => { snz[r.id] = Date.now()+6e5; const g = fired(); delete g[r.id]; setFired(g); hideBub(); }]]);
+}
+function startReminders(){ if(remOn) return; remOn = true; loadRem().then(()=>setTimeout(checkRem,1500)); setInterval(checkRem,15000); setInterval(loadRem,60000); }
+setInterval(()=>{
+  if(av.hidden || !S.pop || touring || !bub.hidden || document.hidden) return;
+  place(Math.random()*(innerWidth-70)+8, Math.random()*(innerHeight-220)+70);
+  setTimeout(()=>{ wave(); say(rand(TIPS),[],6000); }, 1000);
+}, 60000);
+
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+boot();
+</script></body></html>
