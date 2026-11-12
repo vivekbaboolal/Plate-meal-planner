@@ -9,3 +9,6 @@ Saiura guide with a tour
 AI chat
 Dark mode and themes
 Sign in and sign up
+
+Screenshots
+<img width="747" height="664" alt="image" src="https://github.com/user-attachments/assets/fa5a4651-ea00-4981-a456-5b4222756234" />
